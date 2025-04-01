@@ -59,14 +59,6 @@ public class HWSystem {
             }
         }
 
-        // If using deviceId which is already exits, show err
-        for (Device device : devices) {
-            if (device.getDeviceId() == devID) {
-                System.out.println("Error: Device ID " + devID + " is already in use.");
-                return false;
-            }
-        }
-
         Protocol protocol = ports.get(portID);
         Device newDevice = null;
 
@@ -190,7 +182,6 @@ public class HWSystem {
             }
 
             devices.add(newDevice);
-
             return true;
 
         } catch (IllegalArgumentException e) {
@@ -198,7 +189,6 @@ public class HWSystem {
             System.out.println("Command failed.");
             return false;
         }
-
     }
 
     private void checkDeviceLimit(String devType) {
@@ -226,12 +216,36 @@ public class HWSystem {
     }
 
     private void checkDeviceID(String devType, int devID) {
+        // Check if the devID is valid (non-negative and within range)
         if (devID < 0) {
             throw new IllegalArgumentException("Device ID cannot be negative");
         }
-
+        
+        int maxID;
+        switch (devType) {
+            case "Sensor":
+                maxID = maxSensors;
+                break;
+            case "Display":
+                maxID = maxDisplays;
+                break;
+            case "WirelessIO":
+                maxID = maxWirelessIO;
+                break;
+            case "MotorDriver":
+                maxID = maxMotorDrivers;
+                break;
+            default:
+                maxID = 0;
+        }
+        
+        if (devID >= maxID) {
+            throw new IllegalArgumentException("Device ID must be between 0 and " + (maxID - 1) + " for " + devType);
+        }
+        
+        // Check if the devID is already in use for this type
         for (Device device : devices) {
-            if (device.getDevType().contains(devType) && getDeviceID(device) == devID) {
+            if (device.getDevType().contains(devType) && device.getDeviceId() == devID) {
                 throw new IllegalArgumentException("Device ID " + devID + " is already in use for " + devType);
             }
         }
@@ -394,7 +408,7 @@ public class HWSystem {
         for (Device device : devices) {
             if (device.getDevType().contains(devType)) {
                 int portID = getPortForDevice(device);
-                System.out.println(device.getName() + " " + getDeviceID(device) + " " +
+                System.out.println(device.getName() + " " + device.getDeviceId() + " " +
                         portID + " " + ports.get(portID).getProtocolName());
             }
         }
@@ -411,10 +425,8 @@ public class HWSystem {
 
     private Device getDeviceByTypeAndID(String devType, int devID) {
         for (Device device : devices) {
-            if (device.getDevType().contains(devType)) {
-                if (device.getDeviceId() == devID) {
-                    return device;
-                }
+            if (device.getDevType().contains(devType) && device.getDeviceId() == devID) {
+                return device;
             }
         }
         return null;
@@ -425,30 +437,6 @@ public class HWSystem {
         for (int i = 0; i < ports.size(); i++) {
             if (ports.get(i) == deviceProtocol) {
                 return i;
-            }
-        }
-        return -1;
-    }
-
-    private int getDeviceID(Device device) {
-        String devType = "";
-        if (device instanceof Sensor) {
-            devType = "Sensor";
-        } else if (device instanceof Display) {
-            devType = "Display";
-        } else if (device instanceof WirelessIO) {
-            devType = "WirelessIO";
-        } else if (device instanceof MotorDriver) {
-            devType = "MotorDriver";
-        }
-
-        int count = 0;
-        for (Device d : devices) {
-            if (d.getDevType().contains(devType)) {
-                if (d == device) {
-                    return count;
-                }
-                count++;
             }
         }
         return -1;
